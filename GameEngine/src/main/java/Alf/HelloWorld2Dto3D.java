@@ -19,19 +19,21 @@ public class HelloWorld2Dto3D {
     //The window handle
     private long window;
     private static HelloWorld2Dto3D Instance;
-    private int width;
-    private int hight;
+    private final int width;
+    private final int hight;
     float r;
     float g;
     float b;
-    private float a;
+    private final float a;
     private boolean fadetoBlack=false;
+
+    LevelEditorScene monitor = new LevelEditorScene();
 
     //private static int currentSceneIndex=-1;
     private static Scene currentScene;
     private HelloWorld2Dto3D(){
-        this.width=LevelEditorScene.getMonitorWidth();
-        this.hight=LevelEditorScene.getMonitorHeight();
+        this.width= LevelEditorScene.getMonitorWidth();
+        this.hight= LevelEditorScene.getMonitorHeight();
         r=1;
         g=1;
         b=1;
@@ -65,13 +67,14 @@ public class HelloWorld2Dto3D {
         }
         return HelloWorld2Dto3D.Instance;
     }
+    LevelEditorScene LevelEditorScene= Alf.LevelEditorScene.get();
 
     public void run() {
         System.out.println("Hello LWJGL" + Version.getVersion() + "!");
 
         init();
         loop();
-
+        LevelEditorScene.getDefaultShader().cleanup();
         //Free the window callbacks and destroy the window
         glfwFreeCallbacks(window);
         glfwDestroyWindow(window);
@@ -95,9 +98,10 @@ public class HelloWorld2Dto3D {
         glfwDefaultWindowHints();
         glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+        glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT,GLFW_TRUE);
 
         //Create the window
-        window = glfwCreateWindow(width,hight,"Hello LWJGL",NULL ,NULL);
+        window = glfwCreateWindow(1920,1080,"Hello LWJGL",NULL ,NULL);
         if (window == NULL) {
             throw new RuntimeException("Failed to create the GLFW window");
         }
@@ -134,6 +138,9 @@ public class HelloWorld2Dto3D {
                     (vidmode.width() - pWidth.get(0)) / 2,
                     (vidmode.height() - pHeight.get(0)) / 2
             );
+            GLFW.glfwSetWindowSize(window,vidmode.width(),vidmode.height());
+            LevelEditorScene.monitorHeight=vidmode.height();
+            LevelEditorScene.monitorWidth=vidmode.width();
         } // the stack frame is popped automatically
 
         // Make the OpenGL context current
@@ -158,12 +165,13 @@ public class HelloWorld2Dto3D {
         float beginTime=Time.getTime();
         float endTime;
         float dt=-1.0f;
-
-
-
+        glfwMakeContextCurrent(window);
+       // System.out.println("loop:Error: "+glGetError());
+        int counter =0;
         // Run the rendering loop until the user has attempted to close
         // the window or has pressed the ESCAPE key.
         while (!glfwWindowShouldClose(window)) {
+
 
             // Set the clear color
             glClearColor(r, g, b, a);
@@ -178,13 +186,14 @@ public class HelloWorld2Dto3D {
             if (KeyListener.isKeyPressed(GLFW_KEY_ESCAPE)) {
                 glfwSetWindowShouldClose(window, true);
             }
-
+            //System.out.println("loop: error: "+glGetError());
             if (KeyListener.isKeyPressed(GLFW_KEY_SPACE)) {
                 //System.out.println("Space Key is pressed");
                  fadetoBlack=true;
                 }
-
+            //System.out.println("loop unten: error: "+glGetError());
             if (dt>0) {
+               // System.out.println("Delta Time: "+dt);
                 currentScene.update(dt);
             }
 
@@ -199,6 +208,8 @@ public class HelloWorld2Dto3D {
 
             dt=endTime-beginTime;
             beginTime=endTime;
+            counter++;
         }
+        
     }
 }

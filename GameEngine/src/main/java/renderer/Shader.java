@@ -1,6 +1,6 @@
 package renderer;
 
-import org.joml.Matrix4f;
+import org.joml.*;
 import org.lwjgl.BufferUtils;
 
 import java.io.IOException;
@@ -10,10 +10,24 @@ import java.nio.file.Paths;
 
 import static org.lwjgl.opengl.GL11.GL_FALSE;
 import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL20.glGetShaderInfoLog;
 
 public class Shader {
-    int vertexID,fragmentID;
+
+    public int getVertexID() {
+        return vertexID;
+    }
+
+    public int getFragmentID() {
+        return fragmentID;
+    }
+
+    public int getShaderProgrammID() {
+        return shaderProgrammID;
+    }
+
+    private boolean beingUsed;
+
+    private int vertexID,fragmentID;
     private int shaderProgrammID;
 
     private String vertexSource;
@@ -35,6 +49,8 @@ public class Shader {
         }
         System.out.println(vertexSource);
         System.out.println(fragmentSource);
+
+
     }
     public void compile(){
 
@@ -71,11 +87,13 @@ public class Shader {
         }
 
         //Link shaders and check for errors
-        shaderProgrammID=glCreateProgram();
+        this.shaderProgrammID=glCreateProgram();
         glAttachShader(shaderProgrammID,vertexID);
         glAttachShader(shaderProgrammID,fragmentID);
+
         glLinkProgram(shaderProgrammID);
         System.out.println(glGetShaderInfoLog(fragmentID));
+
         //Check for linking errors
         success=glGetProgrami(shaderProgrammID,GL_LINK_STATUS);
         if (success==GL_FALSE){
@@ -84,23 +102,92 @@ public class Shader {
             System.out.println(glGetProgramInfoLog(shaderProgrammID,len));
             assert false:"";
         }
+        System.out.println("compile: error: "+glGetError());
+
     }
     public void use(){
-        glUseProgram(shaderProgrammID);
+
+        if (!beingUsed) {
+            glUseProgram(this.shaderProgrammID);
+            beingUsed=true;
+        }
+        //System.out.println("Use: Error: "+glGetError());
+
     }
     public void cleanup(){
-    glDetachShader(shaderProgrammID,vertexID);
-    glDetachShader(shaderProgrammID,fragmentID);
-    glDeleteShader(vertexID);
-    glDeleteShader(fragmentID);
-    glDeleteProgram(shaderProgrammID);
+        glUseProgram(0);
+        beingUsed=false;
+       /* System.out.println("VertexID:\t"+vertexID+"\nFragmentID:\t"+fragmentID+"\nShaderProgrammID:\t"+shaderProgrammID);
+        GL20.glDetachShader(vertexID,this.shaderProgrammID);
+        glDeleteShader(vertexID);
+        GL20.glDetachShader(fragmentID,this.shaderProgrammID);
+        glDeleteShader(fragmentID);
+        glDeleteProgram(shaderProgrammID);*/
+        System.out.println("cleanup: error: "+glGetError());
+
     }
 
     public void uploadMat4f(String varName,Matrix4f mat4){
-        int varLocation=glGetUniformLocation(shaderProgrammID,varName);
+        
+        int varLocation= glGetUniformLocation(shaderProgrammID,varName);
+        use();
         FloatBuffer matBuffer= BufferUtils.createFloatBuffer(16);
-        mat4.get(matBuffer);
+        
+        // Manually put each element of the matrix into the buffer
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                matBuffer.put(mat4.get(i, j));
+            }
+        }
+        
         matBuffer.flip();
         glUniformMatrix4fv(varLocation,false,matBuffer);
+        
     }
+    public void uploadMMat3f(String varName, Matrix3f mat3){
+        int varLocation = glGetUniformLocation(shaderProgrammID,varName);
+        use();
+        FloatBuffer matBuffer = BufferUtils.createFloatBuffer(9);
+        for (int i=0;i<3;i++){
+            for (int j=0;j<3;j++){
+                matBuffer.put(mat3.get(i,j));
+            }
+        }
+        matBuffer.flip();
+        glUniformMatrix3fv(varLocation,false,matBuffer);
+    }
+    public void uploadVec4f(String varName, Vector4f vec){
+        int varLocation=glGetUniformLocation(shaderProgrammID,varName);
+        use();
+        glUniform4f(varLocation,vec.x, vec.y,vec.z,vec.w);
+    }
+    public void uploadVec3f(String varName, Vector3f vec){
+        int varLocation = glGetUniformLocation(shaderProgrammID,varName);
+        use();
+        glUniform3f(varLocation,vec.x,vec.y,vec.z);
+    }
+    public void uploadVec2f(String varName, Vector2f vec){
+        int varLocation = glGetUniformLocation(shaderProgrammID,varName);
+        use();
+        glUniform2f(varLocation,vec.x,vec.y);
+    }
+
+    public void uploadFloat(String varName, float val){
+        int varLocation = glGetUniformLocation(shaderProgrammID,varName);
+        use();
+        glUniform1f(varLocation,val);
+    }
+    public void uploadInt(String varName, int val){
+        int varLocation = glGetUniformLocation(shaderProgrammID,varName);
+        use();
+        glUniform1i(varLocation,val);
+    }
+
+    public void uploadTexture(String varName,int slot){
+        int varLocation = glGetUniformLocation(shaderProgrammID,varName);
+        use();
+        glUniform1i(varLocation,slot);
+    }
+
+
 }
